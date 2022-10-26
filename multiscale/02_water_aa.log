@@ -1,0 +1,202 @@
+
+  # Neighbour list.
+  neighbor        3.0 bin
+  neigh_modify    check yes
+
+  # Force field definition.
+  boundary p p p
+  units           real
+  atom_style      full
+  bond_style      harmonic
+  angle_style     charmm
+  dihedral_style  charmm
+
+
+# ----------------- Atom Definition Section -----------------
+
+read_data "02_water_aa.data"
+Reading data file ...
+  orthogonal box = (0 0 0) to (12.41 12.41 12.41)
+  1 by 2 by 2 MPI processor grid
+  reading atoms ...
+  192 atoms
+  scanning bonds ...
+  2 = max bonds/atom
+  scanning angles ...
+  1 = max angles/atom
+  reading bonds ...
+  128 bonds
+  reading angles ...
+  64 angles
+Finding 1-2 1-3 1-4 neighbors ...
+  special bond factors lj:    0        0        0       
+  special bond factors coul:  0        0        0       
+     2 = max # of 1-2 neighbors
+     1 = max # of 1-3 neighbors
+     1 = max # of 1-4 neighbors
+     2 = max # of special neighbors
+  special bonds CPU = 0.000 seconds
+  read_data CPU = 0.004 seconds
+
+# ----------------- Settings Section -----------------
+
+include "02_water_aa.in.settings"
+     mass 1  15.9994
+     mass 2   1.0079
+
+     pair_style  lj/cut/tip4p/long 1 2 1 1 0.1546 12.
+     pair_coeff  1 1 0.18519 3.1589
+     pair_coeff  2 2 0.0 0.0
+     kspace_style pppm/tip4p 0.0001
+     bond_coeff  1  450.0 0.9572
+     angle_coeff 1  55.0 104.52 0.0 0.0
+
+
+# ----------------- Run Section -----------------
+
+include "02_water_aa.in.run"
+# Derived variables.
+variable d       equal $p*$s        # thermo interval
+variable d       equal 1000*$s        
+variable d       equal 1000*5        
+variable dcycle  equal $d            # dump interval (same as thermo)
+variable dcycle  equal 5000            
+variable tcouple equal ${ts}*100   # Coupling constant for Temperature
+variable tcouple equal 2*100   
+variable pcouple equal ${ts}*1000  # Coupling constant for Pressure.
+variable pcouple equal 2*1000  
+
+# Create a random seed.
+shell dd if=/dev/urandom of=/tmp/random_number count=2 bs=1
+shell od -An --format=dI /tmp/random_number > /tmp/seed
+variable s1 file /tmp/seed
+variable s2 equal abs(v_s1)
+print "Random Seed ${s2}"
+Random Seed 56809
+variable r1 equal random(10000,1000000,${s2})
+variable r1 equal random(10000,1000000,56809)
+
+# Output.
+thermo       $d
+thermo       5000
+thermo_style custom step etotal evdwl ecoul elong ebond ke pe temp press pxx pyy pzz vol density cpu
+thermo_modify flush yes
+dump 1 all dcd $d ${run}.dcd
+dump 1 all dcd 5000 ${run}.dcd
+dump 1 all dcd 5000 02_water_aa.dcd
+dump_modify 1 unwrap yes
+
+# 1. Equilibrate the sample.
+timestep        ${ts}
+timestep        2
+velocity        all create ${temp} 391624 dist gaussian
+velocity        all create 298.15 391624 dist gaussian
+fix             1 all shake .0001 10 0 m 1.0079 a 1
+       0 = # of size 2 clusters
+       0 = # of size 3 clusters
+       0 = # of size 4 clusters
+      64 = # of frozen angles
+  find clusters CPU = 0.000 seconds
+fix             2 all nph iso 1. 1. ${pcouple}
+fix             2 all nph iso 1. 1. 2000
+variable r format r1 %.0f
+fix             3 all langevin ${temp} ${temp} ${tcouple} $r
+fix             3 all langevin 298.15 ${temp} ${tcouple} $r
+fix             3 all langevin 298.15 298.15 ${tcouple} $r
+fix             3 all langevin 298.15 298.15 200 $r
+fix             3 all langevin 298.15 298.15 200 766172
+run   ${equi}
+run   50000
+PPPM initialization ...
+  extracting TIP4P info from pair style
+  using 12-bit tables for long-range coulomb (../kspace.cpp:342)
+  G vector (1/distance) = 0.24687989
+  grid = 8 8 8
+  stencil order = 5
+  estimated absolute RMS force accuracy = 0.0082085047
+  estimated relative force accuracy = 2.4719668e-05
+  using double precision KISS FFT
+  3d grid and FFT values/proc = 1815 128
+Generated 1 of 1 mixed pair_coeff terms from geometric mixing rule
+Neighbor list info ...
+  update every 1 steps, delay 10 steps, check yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 14.3092
+  ghost atom cutoff = 14.3092
+  binsize = 7.1546, bins = 2 2 2
+  1 neighbor lists, perpetual/occasional/extra = 1 0 0
+  (1) pair lj/cut/tip4p/long, perpetual
+      attributes: half, newton on
+      pair build: half/bin/newton
+      stencil: half/bin/3d
+      bin: standard
+Per MPI rank memory allocation (min/avg/max) = 8.3 | 8.301 | 8.301 Mbytes
+   Step         TotEng         E_vdwl         E_coul         E_long         E_bond         KinEng         PotEng          Temp          Press           Pxx            Pyy            Pzz           Volume        Density          CPU      
+         0  -560.83428      131.19354      4634.9239     -5496.6989      0              169.74715     -730.58143      448.39882     -4156.7593     -2537.6138     -9419.709      -512.95508      1911.2405      1.0017348      0            
+      5000  -576.24324      119.13339      4680.3545     -5497.3163      0              121.58525     -697.82849      321.17584      1124.1271     -3018.5371      2845.4637      3545.4548      1915.3199      0.99960126     11.44933     
+     10000  -608.68507      137.88198      4633.4761     -5497.5052      0              117.46208     -726.14715      310.28421      2037.9389      4722.5657     -3482.756       4874.0069      1831.8147      1.0451691      23.2799      
+     15000  -619.47349      128.62561      4629.5559     -5497.1754      0              119.52047     -738.99395      315.72157      462.70478     -192.4123      -560.03993      2140.5666      1941.3457      0.98620055     34.474218    
+     20000  -621.23969      132.93286      4635.4125     -5496.9031      0              107.31801     -728.5577       283.48794     -1406.9289     -1528.207       1386.5107     -4079.0902      1957.7254      0.97794932     46.011209    
+     25000  -603.05826      111.50882      4662.4591     -5497.6745      0              120.64836     -723.70662      318.70099     -1779.896      -890.69516     -2450.4127     -1998.5801      1922.7579      0.99573439     57.905242    
+     30000  -602.91525      121.26816      4657.7227     -5497.1809      0              115.27478     -718.19003      304.50631     -2877.109      -5109.5447     -2727.9272     -793.85508      2062.3169      0.92835208     69.697228    
+     35000  -610.95158      130.62609      4636.6996     -5496.9291      0              118.65185     -729.60343      313.42705      2475.9752      4185.1392     -735.47252      3978.2588      1822.1539      1.0507105      81.300962    
+     40000  -643.06728      134.37291      4608.0775     -5497.1418      0              111.62408     -754.69136      294.86273     -133.53472      2029.1214     -1127.2065     -1302.519       1902.133       1.0065312      93.381147    
+     45000  -614.64848      137.60064      4641.7429     -5496.8567      0              102.86466     -717.51313      271.7241       87.075769     -851.71901     -81.251838      1194.1981      1931.8746      0.99103547     105.26053    
+     50000  -608.9017       130.83644      4649.2254     -5497.5025      0              108.53899     -717.44069      286.71324      900.98652      2326.7915      560.80616     -184.63807      1883.2784      1.0166082      116.99232    
+Loop time of 116.992 on 4 procs for 50000 steps with 192 atoms
+
+Performance: 73.851 ns/day, 0.325 hours/ns, 427.378 timesteps/s
+96.8% CPU use with 4 MPI tasks x no OpenMP threads
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 46.294     | 70.584     | 93.58      | 199.3 | 60.33
+Bond    | 0.031604   | 0.033107   | 0.035167   |   0.7 |  0.03
+Kspace  | 8.6149     | 31.609     | 55.902     | 297.8 | 27.02
+Neigh   | 2.9973     | 2.998      | 2.9988     |   0.0 |  2.56
+Comm    | 5.8166     | 5.8248     | 5.8362     |   0.3 |  4.98
+Output  | 0.0011496  | 0.0012227  | 0.0014396  |   0.4 |  0.00
+Modify  | 5.491      | 5.5247     | 5.5421     |   0.8 |  4.72
+Other   |            | 0.4171     |            |       |  0.36
+
+Nlocal:             48 ave          59 max          43 min
+Histogram: 1 2 0 0 0 0 0 0 0 1
+Nghost:         5049.5 ave        5114 max        4983 min
+Histogram: 1 0 0 0 1 1 0 0 0 1
+Neighs:        29942.8 ave       35480 max       19581 min
+Histogram: 1 0 0 0 0 0 1 0 0 2
+
+Total # of neighbors = 119771
+Ave neighs/atom = 623.80729
+Ave special neighs/atom = 2
+Neighbor list builds = 2539
+Dangerous builds = 31
+
+# ----------------- Run Section -----------------
+
+# The lines above define the system you want to simulate.
+# What you do next is up to you.
+# Typically a user would minimize and equilibrate
+# the system using commands similar to the following:
+#  ----   examples   ----
+#
+#  -- minimize --
+# minimize 1.0e-5 1.0e-7 1000 10000
+# (Note: Some fixes, for example "shake", interfere with the minimize command,
+#        You can use the "unfix" command to disable them before minimization.)
+#  -- declare time step for normal MD --
+# timestep 1.0
+#  -- run at constant pressure (Nose-Hoover)--
+# fix   fxnpt all npt temp 300.0 300.0 100.0 iso 1.0 1.0 1000.0 drag 1.0
+#  -- ALTERNATELY, run at constant volume (Nose-Hoover) --
+# fix   fxnvt all nvt temp 300.0 300.0 500.0 tchain 1
+#  -- ALTERNATELY, run at constant volume using Langevin dynamics. --
+#  -- (This is good for sparse CG polymers in implicit solvent.)   --
+# fix fxLAN all langevin 300.0 300.0 5000 48279
+# fix fxNVE all nve  #(<--needed by fix langevin)
+#  -- Now, finally run the simulation --
+# run   50000
+#  ---- (end of examples) ----
+
+Total wall time: 0:01:57

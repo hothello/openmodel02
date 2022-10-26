@@ -1,0 +1,9 @@
+     mass 1  15.9994
+     mass 2   1.0079
+
+     pair_style  lj/cut/tip4p/long 1 2 1 1 0.1546 12.
+     pair_coeff  1 1 0.18519 3.1589
+     pair_coeff  2 2 0.0 0.0
+     kspace_style pppm/tip4p 0.0001 
+     bond_coeff  1  450.0 0.9572
+     angle_coeff 1  55.0 104.52 0.0 0.0

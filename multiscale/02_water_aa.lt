@@ -1,0 +1,7 @@
+# Import the definition of the solvent:
+# * Molecular species.
+# * number of molecules.
+# * input variables. 
+import 02_water_aa.header
+# Import the template for equilibrating a liquid.
+import ../molc/solvent_aa_equilibration.lt 

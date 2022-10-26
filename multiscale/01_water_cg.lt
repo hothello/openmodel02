@@ -1,0 +1,8 @@
+# Import the definition of the solvent:
+# * Molecular species.
+# * number of molecules.
+# * simulation box.
+# * input variables. 
+import 01_water_cg.header
+# Import the template for annealing an isotropic liquid.
+import ../molc/solvent_cg_creation.lt 

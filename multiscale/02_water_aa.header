@@ -1,0 +1,17 @@
+
+# Import the force field.
+import ../molc/tip4p2005_aa_01.lt
+
+# Place the molecules on a cubic grid.
+sol = new TIP4[64]
+
+write("In Init"){
+# Input variables.
+variable run string  02_water_aa
+variable temp  equal 298.15  
+variable ts    equal 2      # timestep
+variable p     equal 1000    # correlation length
+variable s     equal 5       # sample interval
+variable equi  equal 50000    # Equilibration steps
+}
+

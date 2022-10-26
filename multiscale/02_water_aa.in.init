@@ -1,0 +1,21 @@
+# Input variables.
+variable run string  02_water_aa
+variable temp  equal 298.15  
+variable ts    equal 2      # timestep
+variable p     equal 1000    # correlation length
+variable s     equal 5       # sample interval
+variable equi  equal 50000    # Equilibration steps
+  echo  log
+  log   ${run}.log
+
+  # Neighbour list.
+  neighbor        3.0 bin
+  neigh_modify    check yes
+  
+  # Force field definition.
+  boundary p p p
+  units           real
+  atom_style      full
+  bond_style      harmonic
+  angle_style     charmm
+  dihedral_style  charmm

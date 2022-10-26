@@ -1,0 +1,23 @@
+# Input variables.
+variable run string 01_water_cg
+variable temp  equal 298.15  
+variable ts    equal 10      # timestep
+variable p     equal 1000    # correlation length
+variable s     equal 5       # sample interval
+variable steps equal 50      # Steps for equilibration.
+variable equi  equal 100    # Equilibration steps
+variable prod  equal 50000  # Production steps
+  echo  log
+  log   ${run}.log
+
+  # Neighbour list.
+  neighbor        5.0 bin
+  neigh_modify    check yes
+  
+  # Force field definition.
+  boundary p p p
+  units real
+  atom_style hybrid molecular ellipsoid
+  # gamma upsilon mu lj_cutoff coul_cutoff
+  pair_style molc/long 1 1 -3 14.0 14.0
+  kspace_style pppm/molc 1e-4

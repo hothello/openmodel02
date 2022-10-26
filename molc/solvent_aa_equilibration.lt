@@ -1,0 +1,49 @@
+# Template file for the creation and annealing of an isotropic liquid.
+write("In Init"){
+  echo  log
+  log   \$\{run\}.log
+
+  # Neighbour list.
+  neighbor        3.0 bin
+  neigh_modify    check yes
+  
+  # Force field definition.
+  boundary p p p
+  units           real
+  atom_style      full
+  bond_style      harmonic
+  angle_style     charmm
+  dihedral_style  charmm
+}
+
+write_once("In Run"){
+# Derived variables.
+variable d       equal \$p*\$s        # thermo interval
+variable dcycle  equal \$d            # dump interval (same as thermo)
+variable tcouple equal \$\{ts\}*100   # Coupling constant for Temperature
+variable pcouple equal \$\{ts\}*1000  # Coupling constant for Pressure.
+
+# Create a random seed.
+shell dd if=/dev/urandom of=/tmp/random_number count=2 bs=1
+shell od -An --format=dI /tmp/random_number > /tmp/seed
+variable s1 file /tmp/seed
+variable s2 equal abs(v_s1)
+print "Random Seed \$\{s2\}"
+variable r1 equal random(10000,1000000,\$\{s2\})
+
+# Output.
+thermo       \$d
+thermo_style custom step etotal evdwl ecoul elong ebond ke pe temp press pxx pyy pzz vol density cpu    
+thermo_modify flush yes
+dump 1 all dcd \$d \$\{run\}.dcd 
+dump_modify 1 unwrap yes
+
+# 1. Equilibrate the sample.
+timestep        \$\{ts\}
+velocity        all create \$\{temp\} 391624 dist gaussian
+fix             1 all shake .0001 10 0 m 1.0079 a 1
+fix             2 all nph iso 1. 1. \$\{pcouple\}
+variable r format r1 %.0f
+fix             3 all langevin \$\{temp\} \$\{temp\} \$\{tcouple\} \$r
+run   \$\{equi\}
+}
